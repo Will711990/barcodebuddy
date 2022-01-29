@@ -127,6 +127,7 @@ class Quantity {
     public $barcode;
     public $quantity;
     public $product;
+    public $quantiteAConsommer;
 
 
     public function __construct(array $dbRow) {
@@ -137,13 +138,15 @@ class Quantity {
         $this->barcode  = $dbRow['barcode'];
         $this->quantity = $dbRow['quantity'];
         $this->product  = $dbRow['product'];
+        $this->quantiteAConsommer  = $dbRow['quantiteAConsommer'];        
     }
 
     private function isValidRow(array $dbRow): bool {
         return (array_key_exists('id', $dbRow) &&
             array_key_exists('barcode', $dbRow) &&
             array_key_exists('quantity', $dbRow) &&
-            array_key_exists('product', $dbRow));
+            array_key_exists('product', $dbRow)) &&
+            array_key_exists('quantiteAConsommer', $dbRow));
     }
 }
 
@@ -154,7 +157,8 @@ class ApiQuantity {
     public $barcode;
     public $quantity;
     public $product;
-
+    public $quantiteAConsommer;
+    
     /**
      * ApiQuantity constructor.
      * @param array $barcodeArrayItem
