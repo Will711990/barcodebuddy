@@ -54,6 +54,7 @@ class GrocyProduct {
     public $quFactor;
     public $defaultBestBeforeDays;
     public $creationDate;
+    public $quantiteAConsommer;
 
     public static function parseProductInfoStock(array $infoArray): GrocyProduct {
         checkIfNumeric($infoArray["product"]["id"]);
@@ -68,6 +69,8 @@ class GrocyProduct {
         $result->creationDate          = $infoArray["product"]["row_created_timestamp"];
         $result->unit                  = sanitizeString($infoArray["quantity_unit_stock"]["name"]);
         $result->barcodes              = $infoArray["product_barcodes"];
+        $result->quantiteAConsommer    = $infoArray["product"]["userfields"]["QuantiteAConsommer"];
+
 
         if (sanitizeString($infoArray["stock_amount"]) != null)
             $result->stockAmount = sanitizeString($infoArray["stock_amount"]);
@@ -86,6 +89,7 @@ class GrocyProduct {
         $result->quFactor              = sanitizeString($infoArray["qu_factor_purchase_to_stock"]);
         $result->defaultBestBeforeDays = $infoArray["default_best_before_days"];
         $result->creationDate          = $infoArray["row_created_timestamp"];
+        $result->quantiteAConsommer    = $infoArray["product"]["userfields"]["QuantiteAConsommer"];
         return $result;
     }
 }
