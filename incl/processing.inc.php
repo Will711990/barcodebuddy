@@ -358,7 +358,11 @@ function processKnownBarcode(GrocyProduct $productInfo, string $barcode, bool $w
 
     switch ($state) {
         case STATE_CONSUME:
-            $amountToConsume = QuantityManager::getQuantityForBarcode($barcode, true, $productInfo);
+            if ($productInfo->quantiteAConsommer == "Quantité du Code-barre") {
+                $amountToConsume = QuantityManager::getQuantityForBarcode($barcode, false, $productInfo);
+            } else {
+                $amountToConsume = QuantityManager::getQuantityForBarcode($barcode, true, $productInfo);
+            }
 
             if ($productInfo->stockAmount > 0) {
                 if ($productInfo->stockAmount < $amountToConsume)
