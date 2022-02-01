@@ -358,16 +358,22 @@ function processKnownBarcode(GrocyProduct $productInfo, string $barcode, bool $w
 
     switch ($state) {
         case STATE_CONSUME:
-            if ($productInfo->quantiteAConsommer == "Quantité du Code-barre") {
+
+            $url = "http://192.168.1.124:9192/api/userfields/products/" . $productInfo->id . "?GROCY-API-KEY=6PNfIzMwjCbEeehB6wXcBlAZ35NY5Nk6l10g9hCFlTPOXWa6jl";
+            $analyseUrl = file_get_contents( $url );
+            $quantiteAConsommer = substr($analyseUrl, 23, -2);
+
+            if (strpos($quantiteAConsommer, "Barcode") !== false) {
                 $amountToConsume = QuantityManager::getQuantityForBarcode($barcode, false, $productInfo);
             } else {
-                $amountToConsume = QuantityManager::getQuantityForBarcode($barcode, true, $productInfo);
+                $amountToConsume = $quantiteAConsommer; //QuantityManager::getQuantityForBarcode($barcode, true, $productInfo);
             }
+
 
             if ($productInfo->stockAmount > 0) {
                 if ($productInfo->stockAmount < $amountToConsume)
                     $amountToConsume = $productInfo->stockAmount;
-                $log    = new LogOutput("Consuming " . $amountToConsume . " " . $productInfo->unit . " of " . $productInfo->name, EVENT_TYPE_ADD_KNOWN_BARCODE, $barcode);
+                $log    = new LogOutput("Consuming " . $amountToConsume . " " . $productInfo->unit . " of " . $productInfo->name . " (id:" . $productInfo->id . ")", EVENT_TYPE_ADD_KNOWN_BARCODE, $barcode);
                 $output = $log
                     ->addStockToText($productInfo->stockAmount - $amountToConsume)
                     ->setWebsocketResultCode(WS_RESULT_PRODUCT_FOUND)
@@ -440,7 +446,7 @@ function processKnownBarcode(GrocyProduct $productInfo, string $barcode, bool $w
             } else {
                 $additionalLog = "";
             }
-            $log    = new LogOutput("Adding  $amount " . $productInfo->unit . " of " . $productInfo->name . $additionalLog, EVENT_TYPE_ADD_KNOWN_BARCODE, $barcode, $isWarning);
+            $log    = new LogOutput("Adding  $amount " . $productInfo->unit . " of " . $productInfo->name . " (id:" . $productInfo->id . ")" . " (UF:" . $quantiteAConsommer . ")" . $additionalLog, EVENT_TYPE_ADD_KNOWN_BARCODE, $barcode, $isWarning);
             $output = $log
                 ->addStockToText($productInfo->stockAmount + $amount)
                 ->setWebsocketResultCode(WS_RESULT_PRODUCT_FOUND)
