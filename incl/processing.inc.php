@@ -359,21 +359,52 @@ function processKnownBarcode(GrocyProduct $productInfo, string $barcode, bool $w
     switch ($state) {
         case STATE_CONSUME:
 
-            $url = "http://192.168.1.124:9192/api/userfields/products/" . $productInfo->id . "?GROCY-API-KEY=6PNfIzMwjCbEeehB6wXcBlAZ35NY5Nk6l10g9hCFlTPOXWa6jl";
-            $analyseUrl = file_get_contents( $url );
-            $quantiteAConsommer = substr($analyseUrl, 23, -2);
+            $server = "http://192.168.1.124:9192/api/";
+            $api_key = "?GROCY-API-KEY=6PNfIzMwjCbEeehB6wXcBlAZ35NY5Nk6l10g9hCFlTPOXWa6jl";
 
-            if (strpos($quantiteAConsommer, "Barcode") !== false) {
-                $amountToConsume = QuantityManager::getQuantityForBarcode($barcode, false, $productInfo);
+            $url_product_userfields = $server . "userfields/products/" . $productInfo->id . $api_key;
+            $RecupUrl_product_userfields = file_get_contents( $url_product_userfields );
+            $arr_quant = json_decode($RecupUrl_product_userfields, true);
+            $QuantiteAConsommer = $arr_quant["QuantiteAConsommer"];
+
+            $url_barcodeProduct = $server . "stock/products/by-barcode/" . $barcode . $api_key;
+            $jsonobj = file_get_contents( $url_barcodeProduct );
+            $arr = json_decode($jsonobj, true);
+
+            foreach($arr["product_barcodes"] as $item)
+            {
+                if($item["barcode"] == $barcode)
+                {
+                    $id_code_barre = $item["id"];
+                }
+            }
+
+            $url_barcodeProduct_userfields = $server . "userfields/product_barcodes/" . $id_code_barre . $api_key;
+            $RecupUrl_barcodeProduct_userfields = file_get_contents( $url_barcodeProduct_userfields );
+            $arr_lot = json_decode($RecupUrl_barcodeProduct_userfields, true);
+            $elementsParLot = $arr_lot["elementsParLot"];
+            $lot = $arr_lot["lot"];
+            if ($lot != "1") {
+               $lot = "Non";
+            } else {
+               $lot = "Oui";
+            }
+
+            if ($quantiteAConsommer !== "Barcode") {
+                if ($lot == "Oui" && $elementsParLot != null && $elementsParLot != 0) {
+                    $amountToConsume = QuantityManager::getQuantityForBarcode($barcode, false, $productInfo);
+                    $amountToConsume = $amountToConsume/$elementsParLot;
+                } else {
+                    $amountToConsume = QuantityManager::getQuantityForBarcode($barcode, false, $productInfo);
+                }
             } else {
                 $amountToConsume = $quantiteAConsommer; //QuantityManager::getQuantityForBarcode($barcode, true, $productInfo);
             }
 
-
             if ($productInfo->stockAmount > 0) {
                 if ($productInfo->stockAmount < $amountToConsume)
                     $amountToConsume = $productInfo->stockAmount;
-                $log    = new LogOutput("Consuming " . $amountToConsume . " " . $productInfo->unit . " of " . $productInfo->name . " (id:" . $productInfo->id . ")", EVENT_TYPE_ADD_KNOWN_BARCODE, $barcode);
+                $log    = new LogOutput("Consuming " . $amountToConsume . " " . $productInfo->unit . " of " . $productInfo->name, EVENT_TYPE_ADD_KNOWN_BARCODE, $barcode);
                 $output = $log
                     ->addStockToText($productInfo->stockAmount - $amountToConsume)
                     ->setWebsocketResultCode(WS_RESULT_PRODUCT_FOUND)
@@ -413,6 +444,7 @@ function processKnownBarcode(GrocyProduct $productInfo, string $barcode, bool $w
             }
             $fileLock->removeLock();
             return $output;
+
         case STATE_CONSUME_SPOILED:
             $amountToSpoil = QuantityManager::getQuantityForBarcode($barcode, true, $productInfo);
 
@@ -437,6 +469,7 @@ function processKnownBarcode(GrocyProduct $productInfo, string $barcode, bool $w
                 $db->setTransactionState(STATE_CONSUME);
             }
             return $output;
+
         case STATE_PURCHASE:
             $isWarning = false;
             $amount    = QuantityManager::getQuantityForBarcode($barcode, false, $productInfo);
@@ -446,7 +479,7 @@ function processKnownBarcode(GrocyProduct $productInfo, string $barcode, bool $w
             } else {
                 $additionalLog = "";
             }
-            $log    = new LogOutput("Adding  $amount " . $productInfo->unit . " of " . $productInfo->name . " (id:" . $productInfo->id . ")" . " (UF:" . $quantiteAConsommer . ")" . $additionalLog, EVENT_TYPE_ADD_KNOWN_BARCODE, $barcode, $isWarning);
+            $log    = new LogOutput("Adding  $amount " . $productInfo->unit . " of " . $productInfo->name . " (id:" . $productInfo->id . ")" . $additionalLog, EVENT_TYPE_ADD_KNOWN_BARCODE, $barcode, $isWarning);
             $output = $log
                 ->addStockToText($productInfo->stockAmount + $amount)
                 ->setWebsocketResultCode(WS_RESULT_PRODUCT_FOUND)
