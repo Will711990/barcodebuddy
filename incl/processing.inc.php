@@ -390,15 +390,15 @@ function processKnownBarcode(GrocyProduct $productInfo, string $barcode, bool $w
                $lot = "Oui";
             }
 
-            if ($quantiteAConsommer !== "Barcode") {
+            if ($quantiteAConsommer !== Barcode) {
+                $amountToConsume = $QuantiteAConsommer; //QuantityManager::getQuantityForBarcode($barcode, true, $productInfo);
+            } else {
                 if ($lot == "Oui" && $elementsParLot != null && $elementsParLot != 0) {
                     $amountToConsume = QuantityManager::getQuantityForBarcode($barcode, false, $productInfo);
                     $amountToConsume = $amountToConsume/$elementsParLot;
                 } else {
                     $amountToConsume = QuantityManager::getQuantityForBarcode($barcode, false, $productInfo);
                 }
-            } else {
-                $amountToConsume = $quantiteAConsommer; //QuantityManager::getQuantityForBarcode($barcode, true, $productInfo);
             }
 
             if ($productInfo->stockAmount > 0) {
