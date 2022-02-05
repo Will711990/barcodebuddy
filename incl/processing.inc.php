@@ -359,6 +359,9 @@ function processKnownBarcode(GrocyProduct $productInfo, string $barcode, bool $w
     switch ($state) {
         case STATE_CONSUME:
 
+            $QuantiteAConsommer = "Rien";
+            $quick_consume_amount = 0;
+
             $server = "http://192.168.1.124:9192/api/";
             $api_key = "?GROCY-API-KEY=6PNfIzMwjCbEeehB6wXcBlAZ35NY5Nk6l10g9hCFlTPOXWa6jl";
 
@@ -366,6 +369,11 @@ function processKnownBarcode(GrocyProduct $productInfo, string $barcode, bool $w
             $RecupUrl_product_userfields = file_get_contents( $url_product_userfields );
             $arr_quant = json_decode($RecupUrl_product_userfields, true);
             $QuantiteAConsommer = $arr_quant["QuantiteAConsommer"];
+
+            $url_product = $server . "stock/products/" . $productInfo->id . $api_key;
+            $RecupUrl_product = file_get_contents( $url_product );
+            $arr_product = json_decode($RecupUrl_product, true);
+            $quick_consume_amount = $arr_product["product"]["quick_consume_amount"];
 
             $url_barcodeProduct = $server . "stock/products/by-barcode/" . $barcode . $api_key;
             $jsonobj = file_get_contents( $url_barcodeProduct );
@@ -390,21 +398,25 @@ function processKnownBarcode(GrocyProduct $productInfo, string $barcode, bool $w
                $lot = "Oui";
             }
 
-            if ($quantiteAConsommer !== Barcode) {
-                $amountToConsume = $QuantiteAConsommer; //QuantityManager::getQuantityForBarcode($barcode, true, $productInfo);
+
+            if ($QuantiteAConsommer <> Barcode) {
+                $amountToConsume = $quick_consume_amount; //QuantityManager::getQuantityForBarcode($barcode, true, $productInfo);
+                $etat = 1;
             } else {
                 if ($lot == "Oui" && $elementsParLot != null && $elementsParLot != 0) {
                     $amountToConsume = QuantityManager::getQuantityForBarcode($barcode, false, $productInfo);
                     $amountToConsume = $amountToConsume/$elementsParLot;
+                    $etat = 2;
                 } else {
                     $amountToConsume = QuantityManager::getQuantityForBarcode($barcode, false, $productInfo);
+                    $etat = 3;
                 }
             }
 
             if ($productInfo->stockAmount > 0) {
                 if ($productInfo->stockAmount < $amountToConsume)
                     $amountToConsume = $productInfo->stockAmount;
-                $log    = new LogOutput("Consuming " . $amountToConsume . " " . $productInfo->unit . " of " . $productInfo->name, EVENT_TYPE_ADD_KNOWN_BARCODE, $barcode);
+                $log    = new LogOutput("Chemin : " . $etat . ", Quantité a consommer : " . $QuantiteAConsommer . ", Conso rapide : " . $quick_consume_amount . ", Consuming " . $amountToConsume . " " . $productInfo->unit . " of " . $productInfo->name, EVENT_TYPE_ADD_KNOWN_BARCODE, $barcode);
                 $output = $log
                     ->addStockToText($productInfo->stockAmount - $amountToConsume)
                     ->setWebsocketResultCode(WS_RESULT_PRODUCT_FOUND)
