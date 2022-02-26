@@ -146,7 +146,7 @@ class Quantity {
             array_key_exists('barcode', $dbRow) &&
             array_key_exists('quantity', $dbRow) &&
             array_key_exists('product', $dbRow)) &&
-            array_key_exists('quantiteAConsommer', $dbRow));
+            array_key_exists('quantiteAConsommer', $dbRow);
     }
 }
 
