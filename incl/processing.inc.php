@@ -362,8 +362,8 @@ function processKnownBarcode(GrocyProduct $productInfo, string $barcode, bool $w
             $QuantiteAConsommer = "Rien";
             $quick_consume_amount = 0;
 
-            $server = "http://192.168.1.124:9192/api/";
-//            $server = "http://192.168.1.50/api/";
+            $server = "http://193.168.1.124:9192/api/";
+//            $server = "http://193.168.1.50/api/";
             $api_key = "?GROCY-API-KEY=6PNfIzMwjCbEeehB6wXcBlAZ35NY5Nk6l10g9hCFlTPOXWa6jl";
 
             $url_product_userfields = $server . "userfields/products/" . $productInfo->id . $api_key;
