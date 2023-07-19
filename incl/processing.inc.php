@@ -22,6 +22,8 @@ require_once __DIR__ . "/config.inc.php";
 require_once __DIR__ . "/lookupProviders/BarcodeLookup.class.php";
 require_once __DIR__ . "/modules/choreManager.php";
 
+require("/home/barcodebuddy/vendor/bluerhinos/phpmqtt/phpMQTT.php");
+
 /**
  *
  * Function that is called when a barcode is passed on
@@ -425,15 +427,53 @@ function processKnownBarcode(GrocyProduct $productInfo, string $barcode, bool $w
                     ->addProductFoundText()
                     ->createLog();
                 API::consumeProduct($productInfo->id, $amountToConsume, false);
+
+                $server_mqtt = '193.168.1.124';     // change if necessary
+                $port_mqtt = 1883;                     // change if necessary
+                $username_mqtt = 'Jarvis';                   // set your username
+                $password_mqtt = '76HrCb6DWfP';                   // set your password
+                $client_id_mqtt = 'phpMQTT-publisher'; // make sure this is unique for connecting to sev>
+
+                $mqtt = new Bluerhinos\phpMQTT($server_mqtt, $port_mqtt, $client_id_mqtt);
+
+		if ($mqtt->connect(true, NULL, $username_mqtt, $password_mqtt)) {
+	                $mqtt->publish('barcodebuddy/produit_scanne', "Conso : " . $amountToConsume . " " . $productInfo->unit . " de " . $productInfo->name, 0, false);
+                        sleep(5);
+                        $mqtt->publish('barcodebuddy/produit_scanne', "Attente du scanner", 0, false);
+		        $mqtt->close();
+		} else {
+		    echo "Time out!\n";
+		}
+
                 $fileLock->removeLock();
                 return $output;
+
             } else {
-                $fileLock->removeLock();
                 $log = new LogOutput("None in stock, not consuming: " . $productInfo->name, EVENT_TYPE_NO_STOCK, $barcode);
+
+                $server_mqtt = '193.168.1.124';     // change if necessary
+                $port_mqtt = 1883;                     // change if necessary
+                $username_mqtt = 'Jarvis';                   // set your username
+                $password_mqtt = '76HrCb6DWfP';                   // set your password
+                $client_id_mqtt = 'phpMQTT-publisher'; // make sure this is unique for connecting to sev>
+
+                $mqtt = new Bluerhinos\phpMQTT($server_mqtt, $port_mqtt, $client_id_mqtt);
+
+                if ($mqtt->connect(true, NULL, $username_mqtt, $password_mqtt)) {
+	                $mqtt->publish('barcodebuddy/produit_scanne', "Rien à consommer", 0, false);
+                        sleep(5);
+                        $mqtt->publish('barcodebuddy/produit_scanne', "Attente du scanner", 0, false);
+                        $mqtt->close();
+                } else {
+                    echo "Time out!\n";
+                }
+
+                $fileLock->removeLock();
                 return $log
                     ->setWebsocketResultCode(WS_RESULT_PRODUCT_FOUND)
                     ->addProductFoundText()
                     ->createLog();
+
             }
 
         case STATE_CONSUME_ALL:
@@ -459,6 +499,7 @@ function processKnownBarcode(GrocyProduct $productInfo, string $barcode, bool $w
             }
             $fileLock->removeLock();
             return $output;
+
         case STATE_CONSUME_SPOILED:
             $amountToSpoil = QuantityManager::getQuantityForBarcode($barcode, true, $productInfo);
 
@@ -483,6 +524,7 @@ function processKnownBarcode(GrocyProduct $productInfo, string $barcode, bool $w
                 $db->setTransactionState(STATE_CONSUME);
             }
             return $output;
+
         case STATE_PURCHASE:
             $isWarning = false;
             $amount    = QuantityManager::getQuantityForBarcode($barcode, false, $productInfo);
@@ -500,7 +542,26 @@ function processKnownBarcode(GrocyProduct $productInfo, string $barcode, bool $w
                 ->createLog();
             API::purchaseProduct($productInfo->id, $amount, $bestBeforeInDays, $price, $fileLock, $productInfo->defaultBestBeforeDays);
             //no $fileLock->removeLock() needed, as it is done in API::purchaseProduct
+
+            $server_mqtt = '193.168.1.124';     // change if necessary
+            $port_mqtt = 1883;                     // change if necessary
+            $username_mqtt = 'Jarvis';                   // set your username
+            $password_mqtt = '76HrCb6DWfP';                   // set your password
+            $client_id_mqtt = 'phpMQTT-publisher'; // make sure this is unique for connecting to sev>
+
+            $mqtt = new Bluerhinos\phpMQTT($server_mqtt, $port_mqtt, $client_id_mqtt);
+
+            if ($mqtt->connect(true, NULL, $username_mqtt, $password_mqtt)) {
+	            $mqtt->publish('barcodebuddy/produit_scanne', "Achat : " . $amount . " " . $productInfo->unit . " de " . $productInfo->name, 0, false);
+                    sleep(5);
+                    $mqtt->publish('barcodebuddy/produit_scanne', "Attente du scanner", 0, false);
+                    $mqtt->close();
+            } else {
+                echo "Time out!\n";
+            }
+
             return $output;
+
         case STATE_OPEN:
             $amount    = QuantityManager::getQuantityForBarcode($barcode, false, $productInfo);
             if ($productInfo->stockAmount > 0) {
@@ -524,6 +585,7 @@ function processKnownBarcode(GrocyProduct $productInfo, string $barcode, bool $w
                 $db->setTransactionState(STATE_CONSUME);
             }
             return $output;
+
         case STATE_GETSTOCK:
             $fileLock->removeLock();
             $log = "Currently in stock: " . $productInfo->stockAmount . " " . $productInfo->unit . " of " . $productInfo->name;
@@ -534,6 +596,7 @@ function processKnownBarcode(GrocyProduct $productInfo, string $barcode, bool $w
                 }
             }
             return (new LogOutput($log, EVENT_TYPE_GET_STOCK_PRODUCT))->createLog();
+
         case STATE_ADD_SL:
             $amount    = QuantityManager::getQuantityForBarcode($barcode, false, $productInfo);
             $fileLock->removeLock();
