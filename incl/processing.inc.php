@@ -234,6 +234,24 @@ function processUnknownBarcode(string $barcode, bool $websocketEnabled, LockGene
                 ->createLog();
         }
     }
+
+    $server_mqtt = '193.168.1.124';     // change if necessary
+    $port_mqtt = 1883;                     // change if necessary
+    $username_mqtt = 'Jarvis';                   // set your username
+    $password_mqtt = '76HrCb6DWfP';                   // set your password
+    $client_id_mqtt = 'phpMQTT-publisher'; // make sure this is unique for connecting to sev>
+
+    $mqtt = new Bluerhinos\phpMQTT($server_mqtt, $port_mqtt, $client_id_mqtt);
+
+    if ($mqtt->connect(true, NULL, $username_mqtt, $password_mqtt)) {
+            $mqtt->publish('barcodebuddy/produit_scanne', "Code-barre inconnu", 0, false);
+            sleep(4);
+            $mqtt->publish('barcodebuddy/produit_scanne', "Attente du scanner", 0, false);
+            $mqtt->close();
+    } else {
+        echo "Time out!\n";
+    }
+
     $fileLock->removeLock();
     return $output;
 }
@@ -438,7 +456,7 @@ function processKnownBarcode(GrocyProduct $productInfo, string $barcode, bool $w
 
 		if ($mqtt->connect(true, NULL, $username_mqtt, $password_mqtt)) {
 	                $mqtt->publish('barcodebuddy/produit_scanne', "Conso : " . $amountToConsume . " " . $productInfo->unit . " de " . $productInfo->name, 0, false);
-                        sleep(5);
+                        sleep(4);
                         $mqtt->publish('barcodebuddy/produit_scanne', "Attente du scanner", 0, false);
 		        $mqtt->close();
 		} else {
@@ -461,7 +479,7 @@ function processKnownBarcode(GrocyProduct $productInfo, string $barcode, bool $w
 
                 if ($mqtt->connect(true, NULL, $username_mqtt, $password_mqtt)) {
 	                $mqtt->publish('barcodebuddy/produit_scanne', "Rien à consommer", 0, false);
-                        sleep(5);
+                        sleep(4);
                         $mqtt->publish('barcodebuddy/produit_scanne', "Attente du scanner", 0, false);
                         $mqtt->close();
                 } else {
@@ -553,7 +571,7 @@ function processKnownBarcode(GrocyProduct $productInfo, string $barcode, bool $w
 
             if ($mqtt->connect(true, NULL, $username_mqtt, $password_mqtt)) {
 	            $mqtt->publish('barcodebuddy/produit_scanne', "Achat : " . $amount . " " . $productInfo->unit . " de " . $productInfo->name, 0, false);
-                    sleep(5);
+                    sleep(4);
                     $mqtt->publish('barcodebuddy/produit_scanne', "Attente du scanner", 0, false);
                     $mqtt->close();
             } else {
